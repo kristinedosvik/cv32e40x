@@ -7,6 +7,7 @@
 // this License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
+
 /*
  // New shifter based on https://github.com/riscv/riscv-bitmanip/blob/main-history/verilog/rvb_shifter/rvb_shifter.v
 
@@ -189,7 +190,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   //   ____ ___  __  __ ____   _    ____  ___ ____   ___  _   _   //
   //  / ___/ _ \|  \/  |  _ \ / \  |  _ \|_ _/ ___| / _ \| \ | |  //
   // | |  | | | | |\/| | |_) / _ \ | |_) || |\___ \| | | |  \| |  //
-  // | |__| |_| | |  | |  __/ ___ \|  _ < | | ___) | |_| | |\  |  //
+  // | |__| |_| | |  | |  __/ ___ \|  _ < | | ___) | |_| | |\  | and min/max  //
   //  \____\___/|_|  |_|_| /_/   \_\_| \_\___|____/ \___/|_| \_|  //
   //                                                              //
   //////////////////////////////////////////////////////////////////
@@ -198,7 +199,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic is_greater;     // handles both signed and unsigned forms
   logic cmp_signed;
 
-  assign cmp_signed = (operator_i == ALU_GES) || (operator_i == ALU_LTS) || (operator_i == ALU_SLTS);
+  assign cmp_signed = (operator_i == ALU_GES) || (operator_i == ALU_LTS) || (operator_i == ALU_SLTS) || (operator_i == ALU_B_MIN) || (operator_i == ALU_B_MAX);
   assign is_equal = (operand_a_i == operand_b_i);
   assign is_greater = $signed({operand_a_i[31] & cmp_signed, operand_a_i}) > $signed({operand_b_i[31] & cmp_signed, operand_b_i});
 
@@ -221,6 +222,14 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
   assign comparison_result_o = cmp_result;
 
+  // generate min/minu and max/maxu result:
+  logic [31:0] min_minu_result;
+  logic [31:0] max_maxu_result;
+
+  assign min_minu_result = (!is_greater) ? operand_a_i : operand_b_i;
+  assign max_maxu_result = (is_greater) ? operand_a_i : operand_b_i;
+
+ 
   /////////////////////////////////////////////////////////////////////
   //   ____  _ _      ____                  _      ___               //
   //  | __ )(_) |_   / ___|___  _   _ _ __ | |_   / _ \ _ __  ___    //
@@ -272,6 +281,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
      .op_b_i (operand_b_i),
      .result_o  (clmul_result));
 
+  /*
   /////////////////////////////////
   //    min/max instructions     //
   /////////////////////////////////
@@ -284,7 +294,8 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   assign minu_result = ($unsigned(operand_a_i) < $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
   assign max_result  = (  $signed(operand_a_i) >   $signed(operand_b_i)) ? operand_a_i : operand_b_i;
   assign maxu_result = ($unsigned(operand_a_i) > $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
-
+*/
+  
   ////////////////////////////////////////////////////////
   //   ____                 _ _     __  __              //
   //  |  _ \ ___  ___ _   _| | |_  |  \/  |_   ___  __  //
@@ -310,30 +321,29 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
       // Shift Operations
       ALU_SLL,
-      ALU_SRL, ALU_SRA:  result_o = shifter_result;
+        ALU_SRL, ALU_SRA:  result_o    = shifter_result;
 
       // Non-vector comparisons
-      ALU_SLTS,  ALU_SLTU: result_o = {31'b0, comparison_result_o};
+      ALU_SLTS,  ALU_SLTU: result_o    = {31'b0, comparison_result_o};
 
       // RV32B Zca instructions
       // TODO:OE: Investigate sharing ALU adder and shifter
-      ALU_B_SH1ADD: result_o = (operand_a_i << 1) + operand_b_i;
-      ALU_B_SH2ADD: result_o = (operand_a_i << 2) + operand_b_i;
-      ALU_B_SH3ADD: result_o = (operand_a_i << 3) + operand_b_i;
+      ALU_B_SH1ADD: result_o           = (operand_a_i << 1) + operand_b_i;
+      ALU_B_SH2ADD: result_o           = (operand_a_i << 2) + operand_b_i;
+      ALU_B_SH3ADD: result_o           = (operand_a_i << 3) + operand_b_i;
 
       // Zbb
-      ALU_B_CLZ, ALU_B_CTZ: result_o = {26'h0, div_clz_result_o};
-      ALU_B_CPOP:           result_o = {26'h0, cpop_result_o};
-      ALU_B_MIN:            result_o = min_result;
-      ALU_B_MINU:           result_o = minu_result;
-      ALU_B_MAX:            result_o = max_result;
-      ALU_B_MAXU:           result_o = maxu_result;
+      ALU_B_CLZ, ALU_B_CTZ: result_o   = {26'h0, div_clz_result_o};
+      ALU_B_CPOP:           result_o   = {26'h0, cpop_result_o};
+      
+      ALU_B_MIN, ALU_B_MINU:  result_o = min_minu_result;
+      ALU_B_MAX, ALU_B_MAXU:  result_o = max_maxu_result;
+     
+      ALU_B_ANDN:           result_o   = operand_a_i & ~operand_b_i;
+      ALU_B_ORN:            result_o   = operand_a_i | ~operand_b_i;
+      ALU_B_XNOR:           result_o   = operand_a_i ^ ~operand_b_i;
 
-      ALU_B_ANDN:           result_o = operand_a_i & ~operand_b_i;
-      ALU_B_ORN:            result_o = operand_a_i | ~operand_b_i;
-      ALU_B_XNOR:           result_o = operand_a_i ^ ~operand_b_i;
-
-      ALU_B_ORC_B:          result_o = {{(8){|operand_a_i[31:24]}},
+      ALU_B_ORC_B:          result_o   = {{(8){|operand_a_i[31:24]}},
                                         {(8){|operand_a_i[23:16]}},
                                         {(8){|operand_a_i[15:8]}},
                                         {(8){|operand_a_i[7:0]}}};
@@ -355,7 +365,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      ALU_CLMUL:           result_o    = clmul_result;
+      ALU_B_CLMUL:           result_o    = clmul_result;
       
 
       default: ; // default case to suppress unique warning
