@@ -235,7 +235,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic [4:0]  ff1_result; // holds the index of the first '1'
   logic        ff_no_one;  // if no ones are found
   logic [ 5:0] cpop_result_o;
-  //logic [31:0]  clmul_result;
+  logic [31:0]  clmul_result;
 
   assign clz_data_in = (operator_i == ALU_B_CTZ) ?  div_clz_data_rev : div_clz_data_i;
 
@@ -266,12 +266,12 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
-/*
+
   cv32e40x_alu_b_clmul alu_b_clmul_i
     (.op_a_i (operand_a_i),
      .op_b_i (operand_b_i),
      .result_o  (clmul_result));
-*/
+
   /////////////////////////////////
   //    min/max instructions     //
   /////////////////////////////////
@@ -355,7 +355,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      //ALU_CLMUL:           result_o    = clmul_result;
+      ALU_CLMUL:           result_o    = clmul_result;
       
 
       default: ; // default case to suppress unique warning
