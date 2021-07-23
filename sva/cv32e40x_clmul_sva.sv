@@ -2,6 +2,7 @@ module cv32e40x_clmul_sva
   import uvm_pkg::*;
   import cv32e40x_pkg::*;
   (// Module signals
+   input logic clk,
    input logic [31:0] op_a_i,
    input logic [31:0] op_b_i,
    input logic [31:0] result_o
@@ -22,9 +23,12 @@ module cv32e40x_clmul_sva
   logic [31:0] result_expect;
   assign result_expect = clmul_spec(op_a_i, op_b_i);
   //assign result_expect = op_a_i * op_b_i;
+  
   a_clmul_result : // check carrless multiplication result for CLMUL according to the SPEC algorithm
-    assert property (
-                    result_o == result_expect)
-  else `uvm_error("clmult", "CLMUL result check failed")
+    assert property (@(posedge clk)
+                     result_o == result_expect)
+    
+      else `uvm_error("clmult", "CLMUL result check failed")
+    
 
 endmodule // cv32e40x_clmul

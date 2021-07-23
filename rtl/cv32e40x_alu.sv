@@ -45,6 +45,7 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+
 module cv32e40x_alu import cv32e40x_pkg::*;
 (
   input  logic              clk,
@@ -84,39 +85,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   assign operand_b_neg = ~operand_b_i;
 
 
-  //////////////////////////////////////////////////////////////////////////////////////////
-  //   ____            _   _ _   _                      _      _       _     _            //
-  //  |  _ \ __ _ _ __| |_(_) |_(_) ___  _ __   ___  __| |    / \   __| | __| | ___ _ __  //
-  //  | |_) / _` | '__| __| | __| |/ _ \| '_ \ / _ \/ _` |   / _ \ / _` |/ _` |/ _ \ '__| //
-  //  |  __/ (_| | |  | |_| | |_| | (_) | | | |  __/ (_| |  / ___ \ (_| | (_| |  __/ |    //
-  //  |_|   \__,_|_|   \__|_|\__|_|\___/|_| |_|\___|\__,_| /_/   \_\__,_|\__,_|\___|_|    //
-  //                                                                                      //
-  //////////////////////////////////////////////////////////////////////////////////////////
-
-  logic        adder_op_b_negate;
-  logic [31:0] adder_op_a, adder_op_b;
-  logic [32:0] adder_in_a, adder_in_b;
-  logic [31:0] adder_result;
-  logic [33:0] adder_result_expanded;
-
-  assign adder_op_b_negate = (operator_i == ALU_SUB);
-
-  // prepare operand a
-  assign adder_op_a = operand_a_i;
-
-  // prepare operand b
-  assign adder_op_b = adder_op_b_negate ? operand_b_neg : operand_b_i;
-
-  // prepare carry
-  assign adder_in_a = {adder_op_a, 1'b1};
-  assign adder_in_b = {adder_op_b, adder_op_b_negate};
-
-  // actual adder
-  assign adder_result_expanded = $unsigned(adder_in_a) + $unsigned(adder_in_b);
-  assign adder_result = adder_result_expanded[32:1];
-
-
-  ////////////////////////////////////////
+ ////////////////////////////////////////
   //  ____  _   _ ___ _____ _____       //
   // / ___|| | | |_ _|  ___|_   _|      //
   // \___ \| |_| || || |_    | |        //
@@ -149,15 +118,27 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
   assign div_op_a_shifted_o = shifter_result;
   always_comb begin
+    //Can mess up the divider?
     shifter_shamt = div_shift_en_i ? {1'b0, div_shift_amt_i[4:0]} : {1'b0, operand_b_i[4:0]};
-    shifter_aa = shifter_operand_tieoff ? 32'h1 : operand_a_i;
+    shifter_aa = (shifter_operand_tieoff) ? 32'h1 : operand_a_i;
 
+    //TODO: might not be nessessary, ask what shifter_operand_tieoff does!
+    //For the moment make sure we set correct shifter_aa value:
+    //if ((operator_i == ALU_B_SH1ADD) || (operator_i == ALU_B_SH2ADD) || (operator_i == ALU_B_SH3ADD)) shifter_aa = operand_a_i; //Try to take this out!
+
+    //OBSOBS!
+    
     if (shifter_rshift) begin
       // Treat right shifts as left shifts with corrected shift amount
       shifter_shamt = -shifter_shamt;
     end
 
-
+    //In case of a SHxADD operation set shifter_shamt accordingly
+    if (operator_i == ALU_B_SH1ADD && !div_shift_en_i) shifter_shamt =  $unsigned(1);
+    if (operator_i == ALU_B_SH2ADD && !div_shift_en_i) shifter_shamt =  $unsigned(2);
+    if (operator_i == ALU_B_SH3ADD && !div_shift_en_i) shifter_shamt =  $unsigned(3);
+    
+    
     if (shifter_operand_tieoff) begin
       shifter_bb = 32'h0;
     end else if (shifter_arithmetic) begin
@@ -186,6 +167,38 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   assign shifter_binv_result = operand_a_i ^  shifter_result;
 
 
+  //////////////////////////////////////////////////////////////////////////////////////////
+  //   ____            _   _ _   _                      _      _       _     _            //
+  //  |  _ \ __ _ _ __| |_(_) |_(_) ___  _ __   ___  __| |    / \   __| | __| | ___ _ __  //
+  //  | |_) / _` | '__| __| | __| |/ _ \| '_ \ / _ \/ _` |   / _ \ / _` |/ _` |/ _ \ '__| //
+  //  |  __/ (_| | |  | |_| | |_| | (_) | | | |  __/ (_| |  / ___ \ (_| | (_| |  __/ |    //
+  //  |_|   \__,_|_|   \__|_|\__|_|\___/|_| |_|\___|\__,_| /_/   \_\__,_|\__,_|\___|_|    //
+  //                                                                                      //
+  //////////////////////////////////////////////////////////////////////////////////////////
+
+  logic        adder_op_b_negate;
+  logic [31:0] adder_op_a, adder_op_b;
+  logic [32:0] adder_in_a, adder_in_b;
+  logic [31:0] adder_result;
+  logic [33:0] adder_result_expanded;
+
+  assign adder_op_b_negate = (operator_i == ALU_SUB);
+
+  // prepare operand a
+  assign adder_op_a = (operator_i == ALU_ADD || operator_i == ALU_SUB) ? operand_a_i : shifter_result;
+
+  // prepare operand b
+  assign adder_op_b = adder_op_b_negate ? operand_b_neg : operand_b_i;
+
+  // prepare carry
+  assign adder_in_a = {adder_op_a, 1'b1};
+  assign adder_in_b = {adder_op_b, adder_op_b_negate};
+
+  // actual adder
+  assign adder_result_expanded = $unsigned(adder_in_a) + $unsigned(adder_in_b);
+  assign adder_result = adder_result_expanded[32:1];
+
+  
   //////////////////////////////////////////////////////////////////
   //   ____ ___  __  __ ____   _    ____  ___ ____   ___  _   _   //
   //  / ___/ _ \|  \/  |  _ \ / \  |  _ \|_ _/ ___| / _ \| \ | |  //
@@ -328,9 +341,10 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
       // RV32B Zca instructions
       // TODO:OE: Investigate sharing ALU adder and shifter
-      ALU_B_SH1ADD: result_o           = (operand_a_i << 1) + operand_b_i;
-      ALU_B_SH2ADD: result_o           = (operand_a_i << 2) + operand_b_i;
-      ALU_B_SH3ADD: result_o           = (operand_a_i << 3) + operand_b_i;
+    
+       //SOMETHINGS!!!
+      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = adder_result; //shifter_result;
+
 
       // Zbb
       ALU_B_CLZ, ALU_B_CTZ: result_o   = {26'h0, div_clz_result_o};
