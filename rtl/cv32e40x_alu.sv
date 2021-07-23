@@ -10,7 +10,6 @@
 
 /*
  // New shifter based on https://github.com/riscv/riscv-bitmanip/blob/main-history/verilog/rvb_shifter/rvb_shifter.v
-
  *  Copyright (C) 2019  Claire Wolf <claire@symbioticeda.com>
  *
  *  Permission to use, copy, modify, and/or distribute this software for any
@@ -134,9 +133,9 @@ module cv32e40x_alu import cv32e40x_pkg::*;
     end
 
     //In case of a SHxADD operation set shifter_shamt accordingly
-    if (operator_i == ALU_B_SH1ADD && !div_shift_en_i) shifter_shamt =  $unsigned(1);
-    if (operator_i == ALU_B_SH2ADD && !div_shift_en_i) shifter_shamt =  $unsigned(2);
-    if (operator_i == ALU_B_SH3ADD && !div_shift_en_i) shifter_shamt =  $unsigned(3);
+   // if (operator_i == ALU_B_SH1ADD && !div_shift_en_i) shifter_shamt =  $unsigned(1);
+   // if (operator_i == ALU_B_SH2ADD && !div_shift_en_i) shifter_shamt =  $unsigned(2);
+   // if (operator_i == ALU_B_SH3ADD && !div_shift_en_i) shifter_shamt =  $unsigned(3);
     
     
     if (shifter_operand_tieoff) begin
@@ -185,7 +184,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   assign adder_op_b_negate = (operator_i == ALU_SUB);
 
   // prepare operand a
-  assign adder_op_a = (operator_i == ALU_ADD || operator_i == ALU_SUB) ? operand_a_i : shifter_result;
+  assign adder_op_a = operand_a_i;  //(operator_i == ALU_ADD || operator_i == ALU_SUB) ? operand_a_i : shifter_result;
 
   // prepare operand b
   assign adder_op_b = adder_op_b_negate ? operand_b_neg : operand_b_i;
@@ -302,12 +301,23 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic [31:0]  minu_result;
   logic [31:0]  max_result;
   logic [31:0]  maxu_result;
-
   assign min_result  = (  $signed(operand_a_i) <   $signed(operand_b_i)) ? operand_a_i : operand_b_i;
   assign minu_result = ($unsigned(operand_a_i) < $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
   assign max_result  = (  $signed(operand_a_i) >   $signed(operand_b_i)) ? operand_a_i : operand_b_i;
   assign maxu_result = ($unsigned(operand_a_i) > $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
 */
+
+////////////////
+// shift add  //
+////////////////
+
+  logic [31:0] shXAdd;
+  logic [31:0] shX;
+  
+  assign shX = (operator_i == ALU_B_SH1ADD) ? operand_a_i << 1 : (operator_i == ALU_B_SH2ADD) ? operand_a_i << 2 : operand_a_i << 3; 
+  
+  assign shXAdd = shX + operand_b_i;
+ 
   
   ////////////////////////////////////////////////////////
   //   ____                 _ _     __  __              //
@@ -343,7 +353,10 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       // TODO:OE: Investigate sharing ALU adder and shifter
     
        //SOMETHINGS!!!
-      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = adder_result; //shifter_result;
+      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = shXAdd;  //adder_result; //shifter_result;
+      //ALU_B_SH1ADD: result_o = (operand_a_i << 1) + operand_b_i;
+      //ALU_B_SH2ADD: result_o = (operand_a_i << 2) + operand_b_i;
+      //ALU_B_SH3ADD: result_o = (operand_a_i << 3) + operand_b_i;
 
 
       // Zbb
