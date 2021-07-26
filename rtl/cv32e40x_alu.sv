@@ -287,12 +287,31 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
-
+/*
   cv32e40x_alu_b_clmul alu_b_clmul_i
     (.op_a_i (operand_a_i),
      .op_b_i (operand_b_i),
      .result_o  (clmul_result));
+*/
 
+  logic [63:0] temp;
+  
+  always_comb begin
+    temp = {'0, operand_b_i};
+  for(integer i = 0; i < 32; i++) begin
+      temp[63:32] = (temp[0]) ? temp[63:32] ^ operand_a_i : temp[63:32];
+      temp = temp >> 1;
+  	end
+  end
+    assign clmul_result = temp[32:0];
+
+  logic [31:0] shXAdd;
+  logic [31:0] shX;
+  
+  assign shX = (operator_i == ALU_B_SH1ADD) ? operand_a_i << 1 : (operator_i == ALU_B_SH2ADD) ? operand_a_i << 2 : operand_a_i << 3; 
+  
+  assign shXAdd = shX + operand_b_i;
+   
   /*
   /////////////////////////////////
   //    min/max instructions     //
@@ -311,13 +330,6 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 // shift add  //
 ////////////////
 
-  logic [31:0] shXAdd;
-  logic [31:0] shX;
-  
-  assign shX = (operator_i == ALU_B_SH1ADD) ? operand_a_i << 1 : (operator_i == ALU_B_SH2ADD) ? operand_a_i << 2 : operand_a_i << 3; 
-  
-  assign shXAdd = shX + operand_b_i;
- 
   
   ////////////////////////////////////////////////////////
   //   ____                 _ _     __  __              //

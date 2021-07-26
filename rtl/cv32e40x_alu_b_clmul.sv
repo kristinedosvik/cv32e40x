@@ -1,3 +1,4 @@
+/*
 module cv32e40x_alu_b_clmul(
   input logic [31:0] op_a_i,
   input logic [31:0] op_b_i,
@@ -14,3 +15,4 @@ module cv32e40x_alu_b_clmul(
   end
     assign result_o = temp[32:0];
 endmodule
+*/
