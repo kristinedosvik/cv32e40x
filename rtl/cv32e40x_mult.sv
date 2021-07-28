@@ -25,6 +25,10 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////
+// This version of the code is not correct //
+/////////////////////////////////////////////
+
 module cv32e40x_mult import cv32e40x_pkg::*;
 (
   input  logic        clk,
@@ -190,11 +194,11 @@ module cv32e40x_mult import cv32e40x_pkg::*;
   ///////////////////////////
   //   32-bit multiplier   //
   ///////////////////////////
-
+  
   assign op_a = (operator_i == MUL_M32) ? op_a_i : {{16{mulh_a[16]}}, mulh_a[15:0]};
   assign op_b = (operator_i == MUL_M32) ? op_b_i : {{16{mulh_b[16]}}, mulh_b[15:0]};
 
-  assign int_result = $signed(op_a) * $signed(op_b);
+ // assign int_result = $signed(op_a) * $signed(op_b);
 
   ///////////////////////////
   // carryless multiplier  //
@@ -235,8 +239,9 @@ module cv32e40x_mult import cv32e40x_pkg::*;
       end
     end
   end
-*/
 
+
+  //Ibex only clmul
    logic [31:0] clmul_and_stage[32];
    logic [31:0] clmul_xor_stage1[16];
    logic [31:0] clmul_xor_stage2[8];
@@ -264,7 +269,48 @@ for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
       end
 
       assign clmul_result = clmul_xor_stage4[0] ^ clmul_xor_stage4[1]; 
+*/
 
+
+  
+  logic [31:0] op_a_2;
+  logic [31:0] op_b_2;
+ 
+  
+  assign op_a_2 = (operator_i == MUL_B_CLMUL) ? op_a_i : op_a;
+  assign op_b_2 = (operator_i == MUL_B_CLMUL) ? op_b_i : op_b;
+  
+  
+   logic [31:0] and_stage[32];
+   logic [31:0] xor_stage1[16];
+   logic [31:0] xor_stage2[8];
+   logic [31:0] xor_stage3[4];
+   logic [31:0] xor_stage4[2];
+
+for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
+  assign and_stage[i] = op_b_2[i] ? op_a_2 << i : '0; //Using wrong operands in multiplication
+      end
+
+      for (genvar i=0; i<16; i++) begin : gen_clmul_xor_op_l1
+        assign xor_stage1[i] = (operator_i == MUL_B_CLMUL) ? and_stage[2*i] ^ and_stage[2*i+1] : and_stage[2*i] + and_stage[2*i+1];
+      end
+
+      for (genvar i=0; i<8; i++) begin : gen_clmul_xor_op_l2
+        assign xor_stage2[i] = (operator_i == MUL_B_CLMUL) ? xor_stage1[2*i] ^ xor_stage1[2*i+1] : xor_stage1[2*i] + xor_stage1[2*i+1];
+      end
+ 
+      for (genvar i=0; i<4; i++) begin : gen_clmul_xor_op_l3
+        assign xor_stage3[i] = (operator_i == MUL_B_CLMUL) ? xor_stage2[2*i] ^ xor_stage2[2*i+1] :  xor_stage2[2*i] + xor_stage2[2*i+1];
+      end
+
+      for (genvar i=0; i<2; i++) begin : gen_clmul_xor_op_l4
+        assign xor_stage4[i] = (operator_i == MUL_B_CLMUL) ? xor_stage3[2*i] ^ xor_stage3[2*i+1] : xor_stage3[2*i] + xor_stage3[2*i+1];
+      end
+
+  assign result_o = (operator_i == MUL_B_CLMUL) ? xor_stage4[0] ^ xor_stage4[1] : xor_stage4[0] + xor_stage4[1];
+  
+  
+  
   ////////////////////////////////////
   //   ____                 _ _     //
   //  |  _ \ ___  ___ _   _| | |_   //
@@ -275,7 +321,7 @@ for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
   ////////////////////////////////////
 
   // 34bit Adder - mulh_acc is always 0 for the MUL instruction
-  assign result   = $signed(int_result) + $signed(mulh_acc);
+  assign result   = $signed(clmul_result) + $signed(mulh_acc);  //$signed(int_result) + $signed(mulh_acc);
 
   assign result_o = (operator_i == MUL_B_CLMUL) ? clmul_result : result[31:0];
 
