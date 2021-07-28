@@ -122,15 +122,18 @@ typedef enum logic [ALU_OP_WIDTH-1:0]
 } alu_opcode_e;
 
 
-parameter MUL_OP_WIDTH = 2;
+parameter MUL_OP_WIDTH = 3;
 
 typedef enum logic [MUL_OP_WIDTH-1:0]
 {
- MUL_M32     = 2'b00,
- MUL_H       = 2'b01,
- 
+ MUL_M32      = 3'b000,
+ MUL_H        = 3'b001,
+              
  //B, Zbc
- MUL_B_CLMUL = 2'b10
+ MUL_B_CLMUL  = 3'b010,
+ MUL_B_CLMULH = 3'b011,
+ MUL_B_CLMULR = 3'b100
+ 
 
  } mul_opcode_e;
 

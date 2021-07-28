@@ -30,6 +30,10 @@
 /////////////////////////////////////////////
 
 module cv32e40x_mult import cv32e40x_pkg::*;
+  #(
+  parameter LEN = 8
+)
+
 (
   input  logic        clk,
   input  logic        rst_n,
@@ -198,7 +202,7 @@ module cv32e40x_mult import cv32e40x_pkg::*;
   assign op_a = (operator_i == MUL_M32) ? op_a_i : {{16{mulh_a[16]}}, mulh_a[15:0]};
   assign op_b = (operator_i == MUL_M32) ? op_b_i : {{16{mulh_b[16]}}, mulh_b[15:0]};
 
- // assign int_result = $signed(op_a) * $signed(op_b);
+  assign int_result = $signed(op_a) * $signed(op_b);
 
   ///////////////////////////
   // carryless multiplier  //
@@ -239,7 +243,7 @@ module cv32e40x_mult import cv32e40x_pkg::*;
       end
     end
   end
-
+*/
 
   //Ibex only clmul
    logic [31:0] clmul_and_stage[32];
@@ -269,10 +273,29 @@ for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
       end
 
       assign clmul_result = clmul_xor_stage4[0] ^ clmul_xor_stage4[1]; 
-*/
-
 
   
+  //clmulh
+  logic [31:0] clmulh;
+  
+  always_comb begin
+    clmulh = '0;
+    for (integer i = 0; i < LEN; i++) begin
+      clmulh = ((op_b_i >> i) & 1) ? clmulh ^ (op_a_i >> (LEN - i)) : clmulh;
+    end  
+  end
+
+  //clmulr
+  logic [31:0] clmulr;
+  
+  always_comb begin
+    clmulr = '0;
+    for (integer i = 0; i < LEN; i++) begin
+      clmulr = ((op_b_i >> i) & 1) ? clmulr ^ (op_a_i >> (LEN - i - 1)) : clmulr; 
+    end
+  end
+
+/*  
   logic [31:0] op_a_2;
   logic [31:0] op_b_2;
  
@@ -308,7 +331,7 @@ for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
       end
 
   assign result_o = (operator_i == MUL_B_CLMUL) ? xor_stage4[0] ^ xor_stage4[1] : xor_stage4[0] + xor_stage4[1];
-  
+  */
   
   
   ////////////////////////////////////
@@ -321,8 +344,23 @@ for (genvar i=0; i<32; i++) begin : gen_clmul_and_op
   ////////////////////////////////////
 
   // 34bit Adder - mulh_acc is always 0 for the MUL instruction
-  assign result   = $signed(clmul_result) + $signed(mulh_acc);  //$signed(int_result) + $signed(mulh_acc);
+  assign result   = $signed(int_result) + $signed(mulh_acc);
 
   assign result_o = (operator_i == MUL_B_CLMUL) ? clmul_result : result[31:0];
 
+
+always_comb
+  begin
+    result_o   = '0;
+
+    unique case (operator_i)
+      //Zbc:
+      MUL_B_CLMUL: result_o  = clmul_result;
+      MUL_B_CLMULH: result_o = clmulh;
+      MUL_B_CLMULR: result_o = clmulr;
+
+      default: result_o      = result[31:0];
+    endcase
+  end
+  
 endmodule
