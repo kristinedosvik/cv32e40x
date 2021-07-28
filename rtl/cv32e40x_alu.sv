@@ -117,9 +117,15 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
   assign div_op_a_shifted_o = shifter_result;
   always_comb begin
+    //Can mess up the divider?
     shifter_shamt = div_shift_en_i ? {1'b0, div_shift_amt_i[4:0]} : {1'b0, operand_b_i[4:0]};
     shifter_aa = (shifter_operand_tieoff) ? 32'h1 : operand_a_i;
 
+    //TODO: might not be nessessary, ask what shifter_operand_tieoff does!
+    //For the moment make sure we set correct shifter_aa value:
+    //if ((operator_i == ALU_B_SH1ADD) || (operator_i == ALU_B_SH2ADD) || (operator_i == ALU_B_SH3ADD)) shifter_aa = operand_a_i; //Try to take this out!
+
+    //OBSOBS!
     
     if (shifter_rshift) begin
       // Treat right shifts as left shifts with corrected shift amount
@@ -287,25 +293,6 @@ module cv32e40x_alu import cv32e40x_pkg::*;
      .op_b_i (operand_b_i),
      .result_o  (clmul_result));
 
-/*
-  logic [63:0] temp;
-  
-  always_comb begin
-    temp = {'0, operand_b_i};
-  for(integer i = 0; i < 32; i++) begin
-      temp[63:32] = (temp[0]) ? temp[63:32] ^ operand_a_i : temp[63:32];
-      temp = temp >> 1;
-  	end
-  end
-    assign clmul_result = temp[32:0];
-
-  logic [31:0] shXAdd;
-  logic [31:0] shX;
-  
-  assign shX = (operator_i == ALU_B_SH1ADD) ? operand_a_i << 1 : (operator_i == ALU_B_SH2ADD) ? operand_a_i << 2 : operand_a_i << 3; 
-  
-  assign shXAdd = shX + operand_b_i;
-  */ 
   /*
   /////////////////////////////////
   //    min/max instructions     //
@@ -324,9 +311,13 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 // shift add  //
 ////////////////
 
-  logic [31:0] shiftXAdd;
+  logic [31:0] shXAdd;
+  logic [31:0] shX;
   
-  assign shiftXAdd = (operand_a_i << ((operator_i == ALU_B_SH1ADD) ? 1: ((operator_i == ALU_B_SH2ADD) ? 2 : 3))) + operand_b_i;
+  assign shX = (operator_i == ALU_B_SH1ADD) ? operand_a_i << 1 : (operator_i == ALU_B_SH2ADD) ? operand_a_i << 2 : operand_a_i << 3; 
+  
+  assign shXAdd = shX + operand_b_i;
+ 
   
   ////////////////////////////////////////////////////////
   //   ____                 _ _     __  __              //
@@ -360,12 +351,13 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
       // RV32B Zca instructions
       // TODO:OE: Investigate sharing ALU adder and shifter
+    
+       //SOMETHINGS!!!
+      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = shXAdd;  //adder_result; //shifter_result;
+      //ALU_B_SH1ADD: result_o = (operand_a_i << 1) + operand_b_i;
+      //ALU_B_SH2ADD: result_o = (operand_a_i << 2) + operand_b_i;
+      //ALU_B_SH3ADD: result_o = (operand_a_i << 3) + operand_b_i;
 
-      //Shift and add operations
-      ALU_B_SH1ADD, 
-      ALU_B_SH2ADD, 
-      ALU_B_SH3ADD: result_o = shiftXAdd;
-      
 
       // Zbb
       ALU_B_CLZ, ALU_B_CTZ: result_o   = {26'h0, div_clz_result_o};
