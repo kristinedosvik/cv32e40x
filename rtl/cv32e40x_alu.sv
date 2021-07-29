@@ -68,17 +68,17 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   output logic [31:0]       div_op_a_shifted_o
 );
 
-  logic [31:0] operand_a_rev;
+  //logic [31:0] operand_a_rev;
   
   // bit reverse operand_a for left shifts and bit counting
-  generate
+ /* generate
     genvar k;
     for(k = 0; k < 32; k++)
     begin : gen_operand_a_rev
       assign operand_a_rev[k] = operand_a_i[31-k];
     end
   endgenerate
-
+*/
   logic [31:0] operand_b_neg;
 
   assign operand_b_neg = ~operand_b_i;
@@ -256,7 +256,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic [4:0]  ff1_result; // holds the index of the first '1'
   logic        ff_no_one;  // if no ones are found
   logic [ 5:0] cpop_result_o;
-  logic [31:0]  clmul_result;
+  //logic [31:0]  clmul_result;
 
   assign clz_data_in = (operator_i == ALU_B_CTZ) ?  div_clz_data_rev : div_clz_data_i;
 
@@ -287,11 +287,37 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
+//ADDED - FRAME CLMUL/H/R
+  logic [31:0] operand_a_rev;
+  logic [31:0] operand_b_rev;
+  
+  logic [31:0] operand_a_clmul;
+  logic [31:0] operand_b_clmul;
+  
+  logic [31:0] clmul;
+  logic [31:0] clmulr;
+  logic [31:0] clmulh;
+  
+  for (genvar k = 0; k < 32; k++) begin
+    assign operand_a_rev[k] = operand_a_i[31-k];
+    assign operand_b_rev[k] = operand_b_i[31-k];
+  end
 
+  assign operand_a_clmul = (operator_i != 2'b00) ? operand_a_rev : operand_a_i;
+  assign operand_b_clmul = (operator_i != 2'b00) ? operand_b_rev : operand_b_i;
+
+  for (genvar k = 0; k < 32; k++) begin
+    assign clmulr[k] = clmul[31-k];
+  end
+
+  assign clmulh = {1'b0, clmulr[31:1]};
+  
+//ADDED - FINISHED  
+  
   cv32e40x_alu_b_clmul alu_b_clmul_i
-    (.op_a_i (operand_a_i),
-     .op_b_i (operand_b_i),
-     .result_o  (clmul_result));
+    (.op_a_i (operand_a_clmul),
+     .op_b_i (operand_b_clmul),
+     .result_o  (clmul));
 
   /*
   /////////////////////////////////
@@ -392,7 +418,10 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      ALU_B_CLMUL:           result_o    = clmul_result;
+      ALU_B_CLMUL:           result_o  = clmul;
+      ALU_B_CLMULH:          result_o  = clmulh;
+      ALU_B_CLMULR:          result_o  = clmulr;
+      
       
 
       default: ; // default case to suppress unique warning
