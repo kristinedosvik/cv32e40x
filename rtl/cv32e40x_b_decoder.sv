@@ -183,7 +183,7 @@ module cv32e40x_b_decoder import cv32e40x_pkg::*;
               decoder_ctrl_o.alu_operator = ALU_B_CLMUL;
             end
           end
-
+/*
           {7'b000_0101, 3'b011} : begin // Carryless mulitplication h
             if (RV32B_ZBC) begin
               decoder_ctrl_o.illegal_insn = 1'b0;
@@ -197,7 +197,7 @@ module cv32e40x_b_decoder import cv32e40x_pkg::*;
               decoder_ctrl_o.alu_operator = ALU_B_CLMULR;
             end
           end
-          
+   */       
           default: begin
             // No match
             decoder_ctrl_o = DECODER_CTRL_ILLEGAL_INSN;

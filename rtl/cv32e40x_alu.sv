@@ -270,16 +270,16 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   //  carryless multiplication   //
   /////////////////////////////////
   
-  logic [31:0] operand_a_rev;
-  logic [31:0] operand_b_rev;
+  //logic [31:0] operand_a_rev;
+  //logic [31:0] operand_b_rev;
   
-  logic [31:0] operand_a_clmul;
-  logic [31:0] operand_b_clmul;
+  //logic [31:0] operand_a_clmul;
+//  logic [31:0] operand_b_clmul;
   
   logic [31:0] clmul_result;
-  logic [31:0] clmulr_result;
-  logic [31:0] clmulh_result;
-  
+//  logic [31:0] clmulr_result;
+//  logic [31:0] clmulh_result;
+/*  
   for (genvar k = 0; k < 32; k++) begin
     assign operand_a_rev[k] = operand_a_i[31-k];
     assign operand_b_rev[k] = operand_b_i[31-k];
@@ -287,19 +287,19 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
   assign operand_a_clmul = (operator_i != ALU_B_CLMUL) ? operand_a_rev : operand_a_i;
   assign operand_b_clmul = (operator_i != ALU_B_CLMUL) ? operand_b_rev : operand_b_i;
-
+*/
   cv32e40x_alu_b_clmul alu_b_clmul_i
     (.op_a_i (operand_a_clmul), 
      .op_b_i (operand_b_clmul),
      .result_o  (clmul_result)
       );
-  
+  /*
   for (genvar k = 0; k < 32; k++) begin
     assign clmulr_result[k] = clmul_result[31-k];
   end
 
   assign clmulh_result = {1'b0, clmulr_result[31:1]};
-
+*/
  
   ////////////////
   // shift add  //
@@ -381,8 +381,8 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
       // Zbc
       ALU_B_CLMUL:           result_o  = clmul_result;
-      ALU_B_CLMULH:          result_o  = clmulh_result;
-      ALU_B_CLMULR:          result_o  = clmulr_result;
+     // ALU_B_CLMULH:          result_o  = clmulh_result;
+     // ALU_B_CLMULR:          result_o  = clmulr_result;
       
       
 

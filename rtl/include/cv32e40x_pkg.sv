@@ -117,9 +117,9 @@ typedef enum logic [ALU_OP_WIDTH-1:0]
  ALU_B_BEXT   = 6'b110110,
               
  //B, Zbc
- ALU_B_CLMUL  = 6'b110111,
- ALU_B_CLMULR = 6'b111000,
- ALU_B_CLMULH = 6'b111001
+ ALU_B_CLMUL  = 6'b110111 //,
+// ALU_B_CLMULR = 6'b111000,
+// ALU_B_CLMULH = 6'b111001
 
 } alu_opcode_e;
 
