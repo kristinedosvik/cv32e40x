@@ -287,7 +287,8 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
-//ADDED - FRAME CLMUL/H/R
+//ADDED - FRAME CLMUL/H/R version framework
+  /*
   logic [31:0] operand_a_rev;
   logic [31:0] operand_b_rev;
   
@@ -311,13 +312,23 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   end
 
   assign clmulh = {1'b0, clmulr[31:1]};
+  */
+//ADDED framework - FINISHED  
+
+  //ADDED YouTube different result
+  logic [1:0] operator_clmul;
+  logic [31:0] clmul_result;
+
+  assign operator_clmul = (operator_i == ALU_B_CLMUL) ? 2'b00 : (operator_i == ALU_B_CLMULH) ? 2'b01 : 2'b10;
   
-//ADDED - FINISHED  
-  
+  //ADDED Youtube different result finished
   cv32e40x_alu_b_clmul alu_b_clmul_i
-    (.op_a_i (operand_a_clmul),
-     .op_b_i (operand_b_clmul),
-     .result_o  (clmul));
+    (.op_a_i (operand_a_i),
+     .op_b_i (operand_b_i),
+     .operator_i(operator_clmul),
+     .result_o  (clmul_result)
+    // .result_o(clmul)
+      );
 
   /*
   /////////////////////////////////
@@ -418,9 +429,9 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      ALU_B_CLMUL:           result_o  = clmul;
-      ALU_B_CLMULH:          result_o  = clmulh;
-      ALU_B_CLMULR:          result_o  = clmulr;
+      ALU_B_CLMUL, //:           result_o  = clmul;
+      ALU_B_CLMULH, //:          result_o  = clmulh;
+      ALU_B_CLMULR:          result_o  = clmul_result;  //clmulr;
       
       
 
