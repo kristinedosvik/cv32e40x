@@ -256,8 +256,11 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic [4:0]  ff1_result; // holds the index of the first '1'
   logic        ff_no_one;  // if no ones are found
   logic [ 5:0] cpop_result_o;
-  //logic [31:0]  clmul_result;
+  logic [31:0]  clmul_result;
+  logic [31:0]  clmulh_result;
+  logic [31:0]  clmulr_result;
 
+  
   assign clz_data_in = (operator_i == ALU_B_CTZ) ?  div_clz_data_rev : div_clz_data_i;
 
   generate
@@ -287,48 +290,23 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
-//ADDED - FRAME CLMUL/H/R version framework
-  /*
-  logic [31:0] operand_a_rev;
-  logic [31:0] operand_b_rev;
-  
-  logic [31:0] operand_a_clmul;
-  logic [31:0] operand_b_clmul;
-  
-  logic [31:0] clmul;
-  logic [31:0] clmulr;
-  logic [31:0] clmulh;
-  
-  for (genvar k = 0; k < 32; k++) begin
-    assign operand_a_rev[k] = operand_a_i[31-k];
-    assign operand_b_rev[k] = operand_b_i[31-k];
-  end
-
-  assign operand_a_clmul = (operator_i != 2'b00) ? operand_a_rev : operand_a_i;
-  assign operand_b_clmul = (operator_i != 2'b00) ? operand_b_rev : operand_b_i;
-
-  for (genvar k = 0; k < 32; k++) begin
-    assign clmulr[k] = clmul[31-k];
-  end
-
-  assign clmulh = {1'b0, clmulr[31:1]};
-  */
-//ADDED framework - FINISHED  
-
-  //ADDED YouTube different result
-  logic [1:0] operator_clmul;
-  logic [31:0] clmul_result;
-
-  assign operator_clmul = (operator_i == ALU_B_CLMUL) ? 2'b00 : (operator_i == ALU_B_CLMULH) ? 2'b01 : 2'b10;
-  
-  //ADDED Youtube different result finished
   cv32e40x_alu_b_clmul alu_b_clmul_i
     (.op_a_i (operand_a_i),
      .op_b_i (operand_b_i),
-     .operator_i(operator_clmul),
      .result_o  (clmul_result)
-    // .result_o(clmul)
-      );
+     );
+  
+  cv32e40x_alu_b_clmulh alu_b_clmulh_i
+    (.op_a_i (operand_a_i),
+     .op_b_i (operand_b_i),
+     .result_o  (clmulh_result)
+     );
+  
+  cv32e40x_alu_b_clmulr alu_b_clmulr_i
+    (.op_a_i (operand_a_i),
+     .op_b_i (operand_b_i),
+     .result_o  (clmulr_result)
+     );
 
   /*
   /////////////////////////////////
@@ -429,9 +407,9 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      ALU_B_CLMUL, //:           result_o  = clmul;
-      ALU_B_CLMULH, //:          result_o  = clmulh;
-      ALU_B_CLMULR:          result_o  = clmul_result;  //clmulr;
+      ALU_B_CLMUL:           result_o  = clmul_result;
+      ALU_B_CLMULH:          result_o  = clmulh_result;
+      ALU_B_CLMULR:          result_o  = clmulr_result;  //clmulr;
       
       
 

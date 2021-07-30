@@ -27,6 +27,8 @@
   `include "cv32e40x_mpu_sva.sv"
   `include "cv32e40x_mult_sva.sv"
   `include "cv32e40x_clmul_sva.sv"//clmul assertion
+  `include "cv32e40x_clmulh_sva.sv"//clmulh assertion
+  `include "cv32e40x_clmulr_sva.sv"//clmulr assertion
   `include "cv32e40x_prefetcher_sva.sv"
   `include "cv32e40x_prefetch_unit_sva.sv"
   `include "cv32e40x_sleep_unit_sva.sv"
@@ -157,6 +159,10 @@ module cv32e40x_wrapper
 // bind cv32e40x_clmul:            core_i.ex_stage_i.alu_i.alu_b_clmul_i           cv32e40x_clmul_sva         clmul_sva         (.clk_i(core_i.clk_i), .*);
 
   bind       cv32e40x_alu_b_clmul           cv32e40x_clmul_sva         clmul_sva         (.clk(core_i.id_stage_i.clk), .*);
+
+  bind       cv32e40x_alu_b_clmulh           cv32e40x_clmulh_sva         clmulh_sva         (.clk(core_i.id_stage_i.clk), .*);
+
+  bind       cv32e40x_alu_b_clmulr           cv32e40x_clmulr_sva         clmulr_sva         (.clk(core_i.id_stage_i.clk), .*);
 
   
 

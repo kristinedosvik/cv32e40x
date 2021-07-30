@@ -1,4 +1,5 @@
 //YouTubeBetter
+/*
 module cv32e40x_alu_b_clmul(
   input logic [31:0] op_a_i,
   input logic [31:0] op_b_i,
@@ -18,7 +19,8 @@ module cv32e40x_alu_b_clmul(
   assign result_o = (operator_i == 2'b00) ? temp[31:0] : (operator_i == 2'b10) ? temp[62:31] : temp[63:32];
 
 endmodule
-/*
+*/
+ 
 //WikipediaBilde
 module cv32e40x_alu_b_clmul(
   input logic [31:0] op_a_i,
@@ -36,5 +38,5 @@ module cv32e40x_alu_b_clmul(
     end
   end
 endmodule
-*/
+
    
