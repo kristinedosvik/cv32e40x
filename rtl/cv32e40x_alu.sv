@@ -68,17 +68,6 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   output logic [31:0]       div_op_a_shifted_o
 );
 
-  //logic [31:0] operand_a_rev;
-  
-  // bit reverse operand_a for left shifts and bit counting
- /* generate
-    genvar k;
-    for(k = 0; k < 32; k++)
-    begin : gen_operand_a_rev
-      assign operand_a_rev[k] = operand_a_i[31-k];
-    end
-  endgenerate
-*/
   logic [31:0] operand_b_neg;
 
   assign operand_b_neg = ~operand_b_i;
@@ -120,23 +109,12 @@ module cv32e40x_alu import cv32e40x_pkg::*;
     //Can mess up the divider?
     shifter_shamt = div_shift_en_i ? {1'b0, div_shift_amt_i[4:0]} : {1'b0, operand_b_i[4:0]};
     shifter_aa = (shifter_operand_tieoff) ? 32'h1 : operand_a_i;
-
-    //TODO: might not be nessessary, ask what shifter_operand_tieoff does!
-    //For the moment make sure we set correct shifter_aa value:
-    //if ((operator_i == ALU_B_SH1ADD) || (operator_i == ALU_B_SH2ADD) || (operator_i == ALU_B_SH3ADD)) shifter_aa = operand_a_i; //Try to take this out!
-
-    //OBSOBS!
     
     if (shifter_rshift) begin
       // Treat right shifts as left shifts with corrected shift amount
       shifter_shamt = -shifter_shamt;
     end
-
-    //In case of a SHxADD operation set shifter_shamt accordingly
-   // if (operator_i == ALU_B_SH1ADD && !div_shift_en_i) shifter_shamt =  $unsigned(1);
-   // if (operator_i == ALU_B_SH2ADD && !div_shift_en_i) shifter_shamt =  $unsigned(2);
-   // if (operator_i == ALU_B_SH3ADD && !div_shift_en_i) shifter_shamt =  $unsigned(3);
-    
+ 
     
     if (shifter_operand_tieoff) begin
       shifter_bb = 32'h0;
@@ -184,7 +162,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   assign adder_op_b_negate = (operator_i == ALU_SUB);
 
   // prepare operand a
-  assign adder_op_a = operand_a_i;  //(operator_i == ALU_ADD || operator_i == ALU_SUB) ? operand_a_i : shifter_result;
+  assign adder_op_a = operand_a_i;
 
   // prepare operand b
   assign adder_op_b = adder_op_b_negate ? operand_b_neg : operand_b_i;
@@ -234,7 +212,11 @@ module cv32e40x_alu import cv32e40x_pkg::*;
 
   assign comparison_result_o = cmp_result;
 
-  // generate min/minu and max/maxu result:
+  
+  /////////////////////////////////
+  //    min/max instructions     //
+  /////////////////////////////////
+ 
   logic [31:0] min_minu_result;
   logic [31:0] max_maxu_result;
 
@@ -256,7 +238,7 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   logic [4:0]  ff1_result; // holds the index of the first '1'
   logic        ff_no_one;  // if no ones are found
   logic [ 5:0] cpop_result_o;
-  //logic [31:0]  clmul_result;
+
 
   assign clz_data_in = (operator_i == ALU_B_CTZ) ?  div_clz_data_rev : div_clz_data_i;
 
@@ -287,66 +269,41 @@ module cv32e40x_alu import cv32e40x_pkg::*;
   /////////////////////////////////
   //  carryless multiplication   //
   /////////////////////////////////
-//ADDED - FRAME CLMUL/H/R version framework
-  /*
+  
   logic [31:0] operand_a_rev;
   logic [31:0] operand_b_rev;
   
   logic [31:0] operand_a_clmul;
   logic [31:0] operand_b_clmul;
   
-  logic [31:0] clmul;
-  logic [31:0] clmulr;
-  logic [31:0] clmulh;
+  logic [31:0] clmul_result;
+  logic [31:0] clmulr_result;
+  logic [31:0] clmulh_result;
   
   for (genvar k = 0; k < 32; k++) begin
     assign operand_a_rev[k] = operand_a_i[31-k];
     assign operand_b_rev[k] = operand_b_i[31-k];
   end
 
-  assign operand_a_clmul = (operator_i != 2'b00) ? operand_a_rev : operand_a_i;
-  assign operand_b_clmul = (operator_i != 2'b00) ? operand_b_rev : operand_b_i;
+  assign operand_a_clmul = (operator_i != ALU_B_CLMUL) ? operand_a_rev : operand_a_i;
+  assign operand_b_clmul = (operator_i != ALU_B_CLMUL) ? operand_b_rev : operand_b_i;
 
+  cv32e40x_alu_b_clmul alu_b_clmul_i
+    (.op_a_i (operand_a_clmul), 
+     .op_b_i (operand_b_clmul),
+     .result_o  (clmul_result)
+      );
+  
   for (genvar k = 0; k < 32; k++) begin
-    assign clmulr[k] = clmul[31-k];
+    assign clmulr_result[k] = clmul_result[31-k];
   end
 
-  assign clmulh = {1'b0, clmulr[31:1]};
-  */
-//ADDED framework - FINISHED  
+  assign clmulh_result = {1'b0, clmulr_result[31:1]};
 
-  //ADDED YouTube different result
-  logic [1:0] operator_clmul;
-  logic [31:0] clmul_result;
-
-  assign operator_clmul = (operator_i == ALU_B_CLMUL) ? 2'b00 : (operator_i == ALU_B_CLMULH) ? 2'b01 : 2'b10;
-  
-  //ADDED Youtube different result finished
-  cv32e40x_alu_b_clmul alu_b_clmul_i
-    (.op_a_i (operand_a_i),
-     .op_b_i (operand_b_i),
-     .operator_i(operator_clmul),
-     .result_o  (clmul_result)
-    // .result_o(clmul)
-      );
-
-  /*
-  /////////////////////////////////
-  //    min/max instructions     //
-  /////////////////////////////////
-  logic [31:0]  min_result;
-  logic [31:0]  minu_result;
-  logic [31:0]  max_result;
-  logic [31:0]  maxu_result;
-  assign min_result  = (  $signed(operand_a_i) <   $signed(operand_b_i)) ? operand_a_i : operand_b_i;
-  assign minu_result = ($unsigned(operand_a_i) < $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
-  assign max_result  = (  $signed(operand_a_i) >   $signed(operand_b_i)) ? operand_a_i : operand_b_i;
-  assign maxu_result = ($unsigned(operand_a_i) > $unsigned(operand_b_i)) ? operand_a_i : operand_b_i;
-*/
-
-////////////////
-// shift add  //
-////////////////
+ 
+  ////////////////
+  // shift add  //
+  ////////////////
 
   logic [31:0] shXAdd;
   logic [31:0] shX;
@@ -387,14 +344,8 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_SLTS,  ALU_SLTU: result_o    = {31'b0, comparison_result_o};
 
       // RV32B Zca instructions
-      // TODO:OE: Investigate sharing ALU adder and shifter
     
-       //SOMETHINGS!!!
-      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = shXAdd;  //adder_result; //shifter_result;
-      //ALU_B_SH1ADD: result_o = (operand_a_i << 1) + operand_b_i;
-      //ALU_B_SH2ADD: result_o = (operand_a_i << 2) + operand_b_i;
-      //ALU_B_SH3ADD: result_o = (operand_a_i << 3) + operand_b_i;
-
+      ALU_B_SH1ADD, ALU_B_SH2ADD, ALU_B_SH3ADD: result_o = shXAdd;  
 
       // Zbb
       ALU_B_CLZ, ALU_B_CTZ: result_o   = {26'h0, div_clz_result_o};
@@ -429,9 +380,9 @@ module cv32e40x_alu import cv32e40x_pkg::*;
       ALU_B_BEXT:           result_o   = shifter_bext_result;
 
       // Zbc
-      ALU_B_CLMUL, //:           result_o  = clmul;
-      ALU_B_CLMULH, //:          result_o  = clmulh;
-      ALU_B_CLMULR:          result_o  = clmul_result;  //clmulr;
+      ALU_B_CLMUL:           result_o  = clmul_result;
+      ALU_B_CLMULH:          result_o  = clmulh_result;
+      ALU_B_CLMULR:          result_o  = clmulr_result;
       
       
 
